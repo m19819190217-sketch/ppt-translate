@@ -1117,6 +1117,11 @@ input, textarea, select { font-family: inherit; }
       </div>
 
       <div style="margin-bottom:8px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">模型名称（可选，豆包填 Endpoint ID）</div>
+        <input type="text" class="api-input" id="modelInput" placeholder="如 ep-20260711xxxxx" autocomplete="off" style="font-size:12px;">
+      </div>
+
+      <div style="margin-bottom:8px;">
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">API URL（可选，自定义接口地址）</div>
         <input type="text" class="api-input" id="apiUrlInput" placeholder="https://api.example.com/v1" autocomplete="off" style="font-size:12px;">
       </div>
@@ -1207,6 +1212,7 @@ var state = {
   selectedPriority: 'deepseek',
   selectedProvider: 'openai',
   apiKey: '',
+  model: '',
   apiUrl: '',
   translating: false
 };
@@ -1265,6 +1271,10 @@ setupOptionGroup('apiProvider', 'selectedProvider');
 $('#apiKeyInput').addEventListener('input', function() {
   state.apiKey = this.value.trim();
   updateTranslateBtn();
+});
+
+$('#modelInput').addEventListener('input', function() {
+  state.model = this.value.trim();
 });
 
 $('#apiUrlInput').addEventListener('input', function() {
@@ -1401,7 +1411,7 @@ function startTranslation() {
   var apiType = state.selectedPriority;
   var apiKey = state.apiKey;
   var apiUrl = state.apiUrl;
-  var model = '';
+  var model = state.model;
 
   if (!apiKey && !apiUrl) {
     showToast('\u8BF7\u8F93\u5165 API Key \u6216 API URL', 'warning');
