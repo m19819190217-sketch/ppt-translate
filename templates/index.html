@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PPT-Translate - PPT / PDF 翻译工作台</title>
+<style>
+/* ========== CSS Variables ========== */
+:root {
+  --primary: #1a73e8;
+  --primary-hover: #1557b0;
+  --primary-light: #e8f0fe;
+  --bg: #f5f5f0;
+  --bg-white: #ffffff;
+  --card: #ffffff;
+  --border: #e0e0e0;
+  --border-light: #eee;
+  --text-primary: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --text-muted: #aaa;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --transition: all 0.2s ease;
+}
+
+/* ========== Reset ========== */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+a { text-decoration: none; color: inherit; }
+button { cursor: pointer; border: none; outline: none; font-family: inherit; }
+input, textarea, select { font-family: inherit; }
+
+/* ========== Scrollbar ========== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #aaa; }
+
+/* ========== Header ========== */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--bg-white);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.5px;
+}
+
+.logo span {
+  color: var(--text-primary);
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.header-version {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: var(--transition);
+  font-size: 16px;
+}
+
+.settings-btn:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* ========== Main Layout ========== */
+.main-container {
+  display: flex;
+  height: calc(100vh - 57px);
+  overflow: hidden;
+}
+
+/* ========== Left Panel ========== */
+.left-panel {
+  width: 320px;
+  min-width: 320px;
+  padding: 20px;
+  overflow-y: auto;
+  border-right: 1px solid var(--border-light);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.panel-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.panel-label svg {
+  width: 16px;
+  height: 16px;
+  color: var(--primary);
+}
+
+/* ========== Upload Area ========== */
+.upload-area {
+  border: 2px dashed #ccc;
+  border-radius: var(--radius-lg);
+  padding: 32px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition);
+  background: var(--bg-white);
+  position: relative;
+}
+
+.upload-area:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.upload-area.drag-over {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  transform: scale(1.01);
+}
+
+.upload-area.has-file {
+  border-color: var(--primary);
+  border-style: solid;
+  background: var(--primary-light);
+}
+
+.upload-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 12px;
+  color: var(--primary);
+  opacity: 0.7;
+}
+
+.upload-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.upload-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.upload-file-info {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-area.has-file .upload-placeholder {
+  display: none;
+}
+
+.upload-area.has-file .upload-file-info {
+  display: flex;
+}
+
+.file-icon-large {
+  width: 40px;
+  height: 40px;
+  color: var(--primary);
+}
+
+.file-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.file-progress {
+  width: 100%;
+  height: 4px;
+  background: var(--border-light);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.file-progress-bar {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 2px;
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+.file-remove {
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.file-remove:hover {
+  color: #e74c3c;
+}
+
+#fileInput {
+  display: none;
+}
+
+/* ========== Option Buttons ========== */
+.option-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.option-btn {
+  padding: 6px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.option-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.option-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.option-grid .option-btn {
+  justify-content: center;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.option-btn.active-border {
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* ========== Translate Button ========== */
+.translate-btn {
+  width: 100%;
+  padding: 12px 20px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 6px rgba(42,157,143,0.3);
+}
+
+.translate-btn:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 4px 12px rgba(42,157,143,0.4);
+  transform: translateY(-1px);
+}
+
+.translate-btn:active {
+  transform: translateY(0);
+}
+
+.translate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.translate-btn .spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: none;
+}
+
+.translate-btn.loading .spinner {
+  display: block;
+}
+
+.translate-btn.loading .btn-text {
+  display: none;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========== API Key Section ========== */
+.api-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-primary);
+  background: var(--bg-white);
+  transition: var(--transition);
+  margin-top: 4px;
+}
+
+.api-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(42,157,143,0.15);
+}
+
+.api-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ========== Right Panel ========== */
+.right-panel {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.result-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.export-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.export-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  transition: var(--transition);
+}
+
+.export-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ========== Empty State ========== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 20px;
+  color: var(--text-muted);
+}
+
+.empty-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid var(--border-light);
+  border-top-color: var(--primary);
+  border-right-color: #c084fc;
+  border-radius: 50%;
+  animation: spin 1.2s linear infinite;
+}
+
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  color: var(--border);
+}
+
+.empty-text {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* ========== Translation Result ========== */
+.translation-result {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.translation-result.show {
+  display: flex;
+}
+
+.page-card {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.page-number {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.page-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.paragraph-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.paragraph-item:last-child {
+  border-bottom: none;
+}
+
+.paragraph-source {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.paragraph-target {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.paragraph-index {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+  font-weight: 600;
+}
+
+/* ========== Progress Bar ========== */
+.global-progress {
+  display: none;
+  padding: 12px 0;
+}
+
+.global-progress.show {
+  display: block;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: var(--border-light);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #c084fc);
+  border-radius: 4px;
+  width: 0%;
+  transition: width 0.5s ease;
+}
+
+/* ========== Modal ========== */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-overlay.show {
+  display: flex;
+}
+
+.modal {
+  background: var(--card);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: var(--shadow-md);
+  animation: modalIn 0.3s ease;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.modal-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.modal-tab {
+  flex: 1;
+  padding: 10px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--bg-white);
+  color: var(--text-secondary);
+  transition: var(--transition);
+  border-right: 1px solid var(--border);
+}
+
+.modal-tab:last-child {
+  border-right: none;
+}
+
+.modal-tab.active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.modal-tab:hover:not(.active) {
+  background: var(--bg);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-white);
+  transition: var(--transition);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(42,157,143,0.15);
+}
+
+.form-input::placeholder {
+  color: var(--text-muted);
+}
+
+.modal-submit {
+  width: 100%;
+  padding: 12px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  transition: var(--transition);
+  margin-top: 8px;
+}
+
+.modal-submit:hover {
+  background: var(--primary-hover);
+}
+
+.modal-close {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  border-radius: var(--radius);
+  margin-top: 8px;
+  transition: var(--transition);
+}
+
+.modal-close:hover {
+  color: var(--text-primary);
+  background: var(--bg);
+}
+
+/* ========== Settings Modal ========== */
+.settings-modal {
+  width: 600px;
+}
+
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border-light);
+}
+
+.settings-tab {
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: var(--transition);
+  background: none;
+}
+
+.settings-tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.settings-tab:hover:not(.active) {
+  color: var(--text-primary);
+}
+
+.settings-panel {
+  display: none;
+}
+
+.settings-panel.active {
+  display: block;
+}
+
+/* ========== Glossary / TM ========== */
+.glossary-list, .tm-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.glossary-item, .tm-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.glossary-item:hover, .tm-item:hover {
+  background: var(--bg);
+}
+
+.glossary-term {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.glossary-translation {
+  color: var(--primary);
+}
+
+.glossary-actions, .tm-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-muted);
+  transition: var(--transition);
+  font-size: 14px;
+}
+
+.icon-btn:hover {
+  background: var(--border-light);
+  color: var(--text-primary);
+}
+
+.icon-btn.danger:hover {
+  background: #fde8e8;
+  color: #e74c3c;
+}
+
+.add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.add-row input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.add-row input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.add-btn {
+  padding: 6px 12px;
+  background: var(--primary);
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.add-btn:hover {
+  background: var(--primary-hover);
+}
+
+.empty-list {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ========== Toast ========== */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast {
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  box-shadow: var(--shadow-md);
+  animation: toastIn 0.3s ease;
+  min-width: 200px;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toast.success { background: #27ae60; }
+.toast.error { background: #e74c3c; }
+.toast.info { background: #3498db; }
+.toast.warning { background: #f39c12; }
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toastOut {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 900px) {
+  .main-container {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 57px);
+  }
+  .left-panel {
+    width: 100%;
+    min-width: unset;
+    border-right: none;
+    border-bottom: 1px solid var(--border-light);
+    max-height: 50vh;
+  }
+  .right-panel {
+    min-height: 50vh;
+  }
+}
+
+@media (max-width: 600px) {
+  .header {
+    padding: 10px 16px;
+  }
+  .header-title {
+    font-size: 15px;
+  }
+  .left-panel, .right-panel {
+    padding: 12px;
+  }
+  .export-btns {
+    flex-wrap: wrap;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ========== Toast Container ========== -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ========== Header ========== -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo">PPT<span>-Translate</span></div>
+    <span class="header-title">PPT / PDF 翻译工作台</span>
+    <span class="header-version">v0.1.2</span>
+  </div>
+  <div class="header-right">
+    <div class="user-info" id="userInfo" style="display:flex;">
+      <div class="user-avatar" id="userAvatar" style="background:#1a73e8;">访</div>
+      <span id="userName">访客</span>
+    </div>
+    <button class="settings-btn" id="settingsBtn" title="设置">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ========== Main Container ========== -->
+<div class="main-container">
+
+  <!-- ========== Left Panel ========== -->
+  <aside class="left-panel">
+
+    <!-- File Upload -->
+    <div class="panel-card">
+      <div class="panel-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        文件上传
+      </div>
+      <div class="upload-area" id="uploadArea">
+        <input type="file" id="fileInput" accept=".pptx,.pdf">
+        <div class="upload-placeholder">
+          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          <div class="upload-title">选择 PPTX / PDF</div>
+          <div class="upload-subtitle">点击上传</div>
+        </div>
+        <div class="upload-file-info" id="uploadFileInfo">
+          <svg class="file-icon-large" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <div class="file-name" id="fileName">-</div>
+          <div class="file-size" id="fileSize">-</div>
+          <div class="file-progress" id="fileProgress">
+            <div class="file-progress-bar" id="fileProgressBar"></div>
+          </div>
+          <div class="file-remove" id="fileRemove">移除文件</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Language Selection -->
+    <div class="panel-card">
+      <div class="panel-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        语种
+      </div>
+      <div class="option-row" id="langOptions">
+        <button class="option-btn active" data-value="zh2en">中译英</button>
+        <button class="option-btn" data-value="en2zh">英译中</button>
+      </div>
+    </div>
+
+    <!-- OCR Engine -->
+    <div class="panel-card">
+      <div class="panel-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        OCR
+      </div>
+      <div class="option-grid" id="ocrOptions">
+        <button class="option-btn active" data-value="auto">自动</button>
+        <button class="option-btn" data-value="mathpix">Mathpix</button>
+        <button class="option-btn" data-value="azure">Azure AI</button>
+        <button class="option-btn" data-value="aws">AWS Textract</button>
+        <button class="option-btn" data-value="local">本地 OCR</button>
+        <button class="option-btn" data-value="text_only">仅文本</button>
+      </div>
+    </div>
+
+    <!-- Translate Button -->
+    <button class="translate-btn" id="translateBtn" disabled>
+      <span class="btn-text">&#8594; 开始翻译</span>
+      <div class="spinner"></div>
+    </button>
+
+    <!-- API Key Configuration -->
+    <div class="panel-card">
+      <div class="panel-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+        API Key
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">翻译优先</div>
+        <div class="option-row" id="translatePriority">
+          <button class="option-btn" data-value="auto" style="padding:4px 12px;font-size:12px;">auto</button>
+          <button class="option-btn" data-value="openai" style="padding:4px 12px;font-size:12px;">openai</button>
+          <button class="option-btn active" data-value="deepseek" style="padding:4px 12px;font-size:12px;">deepseek</button>
+          <button class="option-btn" data-value="doubao" style="padding:4px 12px;font-size:12px;">豆包</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">API 提供商</div>
+        <div class="option-grid" id="apiProvider">
+          <button class="option-btn active-border" data-value="openai">OpenAI</button>
+          <button class="option-btn" data-value="deepseek">DeepSeek</button>
+          <button class="option-btn" data-value="doubao">字节豆包</button>
+          <button class="option-btn" data-value="mathpix">Mathpix</button>
+          <button class="option-btn" data-value="azure">Azure AI</button>
+          <button class="option-btn" data-value="aws">AWS Textract</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">API URL（可选，自定义接口地址）</div>
+        <input type="text" class="api-input" id="apiUrlInput" placeholder="https://api.example.com/v1" autocomplete="off" style="font-size:12px;">
+      </div>
+
+      <input type="password" class="api-input" id="apiKeyInput" placeholder="sk-..." autocomplete="off">
+    </div>
+
+  </aside>
+
+  <!-- ========== Right Panel ========== -->
+  <main class="right-panel">
+    <div class="result-header">
+      <div class="result-title">译文</div>
+      <div class="export-btns">
+        <button class="export-btn" id="exportMD" disabled>MD</button>
+        <button class="export-btn" id="exportJSON" disabled>JSON</button>
+        <button class="export-btn" id="exportDOCX" disabled>DOCX</button>
+        <button class="export-btn" id="exportPDF" disabled>PDF</button>
+      </div>
+    </div>
+
+    <!-- Global Progress -->
+    <div class="global-progress" id="globalProgress">
+      <div class="progress-header">
+        <span id="progressText">翻译进度</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-spinner"></div>
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <div class="empty-text">上传后显示译文</div>
+    </div>
+
+    <!-- Translation Result -->
+    <div class="translation-result" id="translationResult"></div>
+  </main>
+
+</div>
+
+<!-- ========== Settings Modal ========== -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal settings-modal">
+    <div class="modal-title">设置</div>
+    <div class="settings-tabs">
+      <button class="settings-tab active" data-stab="glossary">语料库</button>
+      <button class="settings-tab" data-stab="tm">翻译记忆库</button>
+    </div>
+
+    <!-- Glossary Panel -->
+    <div class="settings-panel active" id="glossaryPanel">
+      <div class="glossary-list" id="glossaryList">
+        <div class="empty-list">暂无语料库条目</div>
+      </div>
+      <div class="add-row">
+        <input type="text" id="glossaryTerm" placeholder="术语">
+        <input type="text" id="glossaryTranslation" placeholder="翻译">
+        <button class="add-btn" id="addGlossary">添加</button>
+      </div>
+    </div>
+
+    <!-- TM Panel -->
+    <div class="settings-panel" id="tmPanel">
+      <div class="tm-list" id="tmList">
+        <div class="empty-list">暂无翻译记忆条目</div>
+      </div>
+    </div>
+
+    <button class="modal-close" id="settingsClose">关闭</button>
+  </div>
+</div>
+
+<script>
+/* ========== State ========== */
+var state = {
+  uploadedFile: null,
+  uploadedFileName: '',
+  uploadedFileSize: '',
+  paragraphs: [],
+  translatedPages: [],
+  selectedLang: 'zh2en',
+  selectedOCR: 'auto',
+  selectedPriority: 'deepseek',
+  selectedProvider: 'openai',
+  apiKey: '',
+  apiUrl: '',
+  translating: false
+};
+
+/* ========== Utility ========== */
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return document.querySelectorAll(sel); }
+
+function showToast(msg, type) {
+  type = type || 'info';
+  var container = $('#toastContainer');
+  var toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  var icons = { success: '\u2713', error: '\u2717', info: '\u2139', warning: '\u26A0' };
+  toast.innerHTML = '<span>' + (icons[type] || '') + '</span><span>' + msg + '</span>';
+  container.appendChild(toast);
+  setTimeout(function() {
+    toast.style.animation = 'toastOut 0.3s ease forwards';
+    setTimeout(function() { toast.remove(); }, 300);
+  }, 3000);
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+/* ========== Option Buttons ========== */
+function setupOptionGroup(containerId, stateKey) {
+  var container = $('#' + containerId);
+  container.addEventListener('click', function(e) {
+    var btn = e.target.closest('.option-btn');
+    if (!btn) return;
+    var val = btn.getAttribute('data-value');
+    state[stateKey] = val;
+    if (containerId === 'apiProvider') {
+      container.querySelectorAll('.option-btn').forEach(function(b) {
+        b.classList.remove('active', 'active-border');
+      });
+      btn.classList.add('active-border');
+    } else {
+      container.querySelectorAll('.option-btn').forEach(function(b) {
+        b.classList.remove('active');
+      });
+      btn.classList.add('active');
+    }
+  });
+}
+
+setupOptionGroup('langOptions', 'selectedLang');
+setupOptionGroup('ocrOptions', 'selectedOCR');
+setupOptionGroup('translatePriority', 'selectedPriority');
+setupOptionGroup('apiProvider', 'selectedProvider');
+
+$('#apiKeyInput').addEventListener('input', function() {
+  state.apiKey = this.value.trim();
+  updateTranslateBtn();
+});
+
+$('#apiUrlInput').addEventListener('input', function() {
+  state.apiUrl = this.value.trim();
+});
+
+function updateTranslateBtn() {
+  var btn = $('#translateBtn');
+  btn.disabled = !state.uploadedFile || state.translating;
+}
+
+/* ========== File Upload ========== */
+var uploadArea = $('#uploadArea');
+var fileInput = $('#fileInput');
+
+uploadArea.addEventListener('click', function(e) {
+  if (e.target.id === 'fileRemove') return;
+  fileInput.click();
+});
+
+uploadArea.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  uploadArea.classList.add('drag-over');
+});
+
+uploadArea.addEventListener('dragleave', function(e) {
+  e.preventDefault();
+  uploadArea.classList.remove('drag-over');
+});
+
+uploadArea.addEventListener('drop', function(e) {
+  e.preventDefault();
+  uploadArea.classList.remove('drag-over');
+  var files = e.dataTransfer.files;
+  if (files.length > 0) handleFile(files[0]);
+});
+
+fileInput.addEventListener('change', function() {
+  if (this.files.length > 0) handleFile(this.files[0]);
+});
+
+$('#fileRemove').addEventListener('click', function(e) {
+  e.stopPropagation();
+  removeFile();
+});
+
+function handleFile(file) {
+  var ext = file.name.split('.').pop().toLowerCase();
+  if (ext !== 'pptx' && ext !== 'pdf') {
+    showToast('\u4EC5\u652F\u6301 PPTX \u6216 PDF \u6587\u4EF6', 'warning');
+    return;
+  }
+
+  state.uploadedFile = file;
+  state.uploadedFileName = file.name;
+  state.uploadedFileSize = formatFileSize(file.size);
+
+  $('#fileName').textContent = file.name;
+  $('#fileSize').textContent = state.uploadedFileSize;
+  uploadArea.classList.add('has-file');
+  updateTranslateBtn();
+
+  showToast('\u6587\u4EF6\u5DF2\u9009\u62E9: ' + file.name, 'info');
+
+  /* Upload to server */
+  uploadFile(file);
+}
+
+function uploadFile(file) {
+  var progressBar = $('#fileProgressBar');
+  var progressDiv = $('#fileProgress');
+  progressBar.style.width = '0%';
+  progressDiv.style.display = 'block';
+
+  var formData = new FormData();
+  formData.append('file', file);
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/upload');
+
+  xhr.upload.addEventListener('progress', function(e) {
+    if (e.lengthComputable) {
+      var pct = Math.round((e.loaded / e.total) * 100);
+      progressBar.style.width = pct + '%';
+    }
+  });
+
+  xhr.addEventListener('load', function() {
+    if (xhr.status === 200) {
+      progressBar.style.width = '100%';
+      try {
+        var data = JSON.parse(xhr.responseText);
+        state.paragraphs = data.paragraphs || [];
+        showToast('\u89E3\u6790\u5B8C\u6210\uFF0C\u5171 ' + state.paragraphs.length + ' \u6BB5', 'success');
+        setTimeout(function() { progressDiv.style.display = 'none'; }, 1000);
+      } catch(e) {
+        showToast('\u6587\u4EF6\u5DF2\u4E0A\u4F20', 'success');
+        progressDiv.style.display = 'none';
+      }
+    } else {
+      showToast('\u4E0A\u4F20\u5931\u8D25: ' + xhr.statusText, 'error');
+      progressDiv.style.display = 'none';
+    }
+  });
+
+  xhr.addEventListener('error', function() {
+    showToast('\u4E0A\u4F20\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u8FDE\u63A5', 'error');
+    progressDiv.style.display = 'none';
+  });
+
+  xhr.send(formData);
+}
+
+function removeFile() {
+  state.uploadedFile = null;
+  state.uploadedFileName = '';
+  state.uploadedFileSize = '';
+  state.paragraphs = [];
+  fileInput.value = '';
+  uploadArea.classList.remove('has-file');
+  updateTranslateBtn();
+  showToast('\u6587\u4EF6\u5DF2\u79FB\u9664', 'info');
+}
+
+/* ========== Translation ========== */
+$('#translateBtn').addEventListener('click', function() {
+  if (state.translating || !state.uploadedFile) return;
+  startTranslation();
+});
+
+function startTranslation() {
+  var sourceLang = state.selectedLang === 'zh2en' ? 'zh' : 'en';
+  var targetLang = state.selectedLang === 'zh2en' ? 'en' : 'zh';
+  var apiType = state.selectedPriority;
+  var apiKey = state.apiKey;
+  var apiUrl = state.apiUrl;
+  var model = '';
+
+  if (!apiKey && !apiUrl) {
+    showToast('\u8BF7\u8F93\u5165 API Key \u6216 API URL', 'warning');
+    $('#apiKeyInput').focus();
+    return;
+  }
+
+  state.translating = true;
+  var btn = $('#translateBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  /* Show progress */
+  $('#emptyState').style.display = 'none';
+  $('#globalProgress').classList.add('show');
+  $('#translationResult').innerHTML = '';
+  $('#translationResult').classList.add('show');
+  $('#progressFill').style.width = '0%';
+  $('#progressPercent').textContent = '0%';
+  $('#progressText').textContent = '\u7FFB\u8BD1\u4E2D...';
+
+  var formData = new FormData();
+  formData.append('file', state.uploadedFile);
+  formData.append('source_lang', sourceLang);
+  formData.append('target_lang', targetLang);
+  formData.append('api_type', apiType);
+  formData.append('api_key', apiKey);
+  formData.append('api_url', apiUrl);
+  formData.append('model', model);
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/translate/file');
+
+  xhr.addEventListener('load', function() {
+    state.translating = false;
+    btn.classList.remove('loading');
+    updateTranslateBtn();
+
+    if (xhr.status === 200) {
+      try {
+        var data = JSON.parse(xhr.responseText);
+        state.translatedPages = data.pages || data.results || [];
+        $('#progressFill').style.width = '100%';
+        $('#progressPercent').textContent = '100%';
+        $('#progressText').textContent = '\u7FFB\u8BD1\u5B8C\u6210';
+        displayResults(state.translatedPages);
+        enableExport();
+        showToast('\u7FFB\u8BD1\u5B8C\u6210!', 'success');
+        setTimeout(function() {
+          $('#globalProgress').classList.remove('show');
+        }, 2000);
+      } catch(e) {
+        showToast('\u7FFB\u8BD1\u7ED3\u679C\u89E3\u6790\u5931\u8D25', 'error');
+        $('#globalProgress').classList.remove('show');
+      }
+    } else {
+      try {
+        var err = JSON.parse(xhr.responseText);
+        showToast('\u7FFB\u8BD1\u5931\u8D25: ' + (err.error || xhr.statusText), 'error');
+      } catch(e) {
+        showToast('\u7FFB\u8BD1\u5931\u8D25: ' + xhr.statusText, 'error');
+      }
+      $('#globalProgress').classList.remove('show');
+    }
+  });
+
+  xhr.addEventListener('error', function() {
+    state.translating = false;
+    btn.classList.remove('loading');
+    updateTranslateBtn();
+    showToast('\u7FFB\u8BD1\u8BF7\u6C42\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC', 'error');
+    $('#globalProgress').classList.remove('show');
+  });
+
+  /* Simulate progress while waiting */
+  var simProgress = 0;
+  var progressTimer = setInterval(function() {
+    if (!state.translating || simProgress >= 90) {
+      clearInterval(progressTimer);
+      return;
+    }
+    simProgress += Math.random() * 8;
+    if (simProgress > 90) simProgress = 90;
+    $('#progressFill').style.width = Math.round(simProgress) + '%';
+    $('#progressPercent').textContent = Math.round(simProgress) + '%';
+  }, 500);
+
+  xhr.send(formData);
+}
+
+function displayResults(pages) {
+  var container = $('#translationResult');
+  container.innerHTML = '';
+
+  if (!pages || pages.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-text">\u65E0\u7FFB\u8BD1\u7ED3\u679C</div></div>';
+    return;
+  }
+
+  pages.forEach(function(page, idx) {
+    var card = document.createElement('div');
+    card.className = 'page-card';
+
+    var header = document.createElement('div');
+    header.className = 'page-header';
+    var paraCount = (page.paragraphs ? page.paragraphs.length : 0);
+    header.innerHTML = '<span class="page-number">\u7B2C ' + (idx + 1) + ' \u9875</span>' +
+      '<span class="page-badge">' + paraCount + ' \u6BB5</span>';
+    card.appendChild(header);
+
+    var paragraphs = page.paragraphs || page.texts || [];
+    if (Array.isArray(page) && !page.paragraphs) {
+      paragraphs = page;
+    }
+
+    paragraphs.forEach(function(para, pIdx) {
+      var item = document.createElement('div');
+      item.className = 'paragraph-item';
+
+      var source = '';
+      var target = '';
+
+      if (typeof para === 'string') {
+        target = para;
+      } else if (typeof para === 'object') {
+        source = para.source || para.original || '';
+        target = para.target || para.translated || para.translation || '';
+      }
+
+      if (source) {
+        var sourceDiv = document.createElement('div');
+        sourceDiv.className = 'paragraph-source';
+        sourceDiv.innerHTML = '<span class="paragraph-index">#' + (pIdx + 1) + '</span>' + escapeHtml(source);
+        item.appendChild(sourceDiv);
+      }
+
+      var targetDiv = document.createElement('div');
+      targetDiv.className = 'paragraph-target';
+      targetDiv.innerHTML = '<span class="paragraph-index">#' + (pIdx + 1) + '</span>' + escapeHtml(target);
+      item.appendChild(targetDiv);
+
+      card.appendChild(item);
+    });
+
+    container.appendChild(card);
+  });
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  var div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/* ========== Export ========== */
+function enableExport() {
+  $('#exportMD').disabled = false;
+  $('#exportJSON').disabled = false;
+  $('#exportDOCX').disabled = false;
+  $('#exportPDF').disabled = false;
+}
+
+function exportFile(format) {
+  if (state.translatedPages.length === 0) {
+    showToast('\u6682\u65E0\u8BD1\u6587\u53EF\u5BFC\u51FA', 'warning');
+    return;
+  }
+
+  showToast('\u6B63\u5728\u5BFC\u51FA ' + format.toUpperCase() + '...', 'info');
+
+  /* Try server-side export */
+  fetch('/api/export/' + format, { method: 'GET' })
+  .then(function(r) {
+    if (r.ok) {
+      return r.blob();
+    }
+    throw new Error('Export failed');
+  })
+  .then(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'translation.' + format;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('\u5BFC\u51FA\u6210\u529F', 'success');
+  })
+  .catch(function() {
+    /* Fallback: client-side export */
+    clientExport(format);
+  });
+}
+
+function clientExport(format) {
+  if (format === 'json') {
+    var blob = new Blob([JSON.stringify(state.translatedPages, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, 'translation.json');
+  } else if (format === 'md') {
+    var md = '# \u7FFB\u8BD1\u7ED3\u679C\n\n';
+    state.translatedPages.forEach(function(page, idx) {
+      md += '## \u7B2C ' + (idx + 1) + ' \u9875\n\n';
+      var paragraphs = page.paragraphs || page.texts || (Array.isArray(page) ? page : []);
+      paragraphs.forEach(function(para) {
+        if (typeof para === 'string') {
+          md += para + '\n\n';
+        } else {
+          if (para.source) md += '**\u539F\u6587**: ' + para.source + '\n\n';
+          if (para.target || para.translation) md += '**\u8BD1\u6587**: ' + (para.target || para.translation) + '\n\n';
+        }
+      });
+    });
+    var blob = new Blob([md], { type: 'text/markdown' });
+    downloadBlob(blob, 'translation.md');
+  } else {
+    showToast('\u5BA2\u6237\u7AEF\u6682\u4E0D\u652F\u6301 ' + format.toUpperCase() + ' \u5BFC\u51FA\uFF0C\u8BF7\u4F7F\u7528\u670D\u52A1\u7AEF', 'warning');
+  }
+}
+
+function downloadBlob(blob, filename) {
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('\u6587\u4EF6\u5DF2\u4E0B\u8F7D', 'success');
+}
+
+$('#exportMD').addEventListener('click', function() { exportFile('md'); });
+$('#exportJSON').addEventListener('click', function() { exportFile('json'); });
+$('#exportDOCX').addEventListener('click', function() { exportFile('docx'); });
+$('#exportPDF').addEventListener('click', function() { exportFile('pdf'); });
+
+/* ========== Settings Modal ========== */
+$('#settingsBtn').addEventListener('click', function() {
+  $('#settingsModal').classList.add('show');
+  loadGlossary();
+  loadTM();
+});
+
+$('#settingsClose').addEventListener('click', function() {
+  $('#settingsModal').classList.remove('show');
+});
+
+/* Settings tabs */
+$$('.settings-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    $$('.settings-tab').forEach(function(t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    $$('.settings-panel').forEach(function(p) { p.classList.remove('active'); });
+    var target = tab.getAttribute('data-stab');
+    if (target === 'glossary') {
+      $('#glossaryPanel').classList.add('active');
+    } else {
+      $('#tmPanel').classList.add('active');
+    }
+  });
+});
+
+/* Close modals on overlay click */
+$$('.modal-overlay').forEach(function(overlay) {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) {
+      overlay.classList.remove('show');
+    }
+  });
+});
+
+/* ========== Glossary ========== */
+function loadGlossary() {
+  fetch('/api/glossary')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var list = $('#glossaryList');
+      var items = data.glossary || data.items || data || [];
+      if (!Array.isArray(items) || items.length === 0) {
+        list.innerHTML = '<div class="empty-list">\u6682\u65E0\u8BED\u6599\u5E93\u6761\u76EE</div>';
+        return;
+      }
+      list.innerHTML = '';
+      items.forEach(function(item) {
+        addGlossaryItem(item.id || item._id, item.term, item.translation);
+      });
+    })
+    .catch(function() {
+      $('#glossaryList').innerHTML = '<div class="empty-list">\u52A0\u8F7D\u5931\u8D25</div>';
+    });
+}
+
+function addGlossaryItem(id, term, translation) {
+  var div = document.createElement('div');
+  div.className = 'glossary-item';
+  div.setAttribute('data-id', id);
+  div.innerHTML = '<div><span class="glossary-term">' + escapeHtml(term) + '</span> \u2192 <span class="glossary-translation">' + escapeHtml(translation) + '</span></div>' +
+    '<div class="glossary-actions"><button class="icon-btn danger" title="\u5220\u9664" onclick="deleteGlossaryItem(this)">&#10005;</button></div>';
+  $('#glossaryList').appendChild(div);
+}
+
+$('#addGlossary').addEventListener('click', function() {
+  var term = $('#glossaryTerm').value.trim();
+  var translation = $('#glossaryTranslation').value.trim();
+  if (!term || !translation) {
+    showToast('\u8BF7\u8F93\u5165\u672F\u8BED\u548C\u7FFB\u8BD1', 'warning');
+    return;
+  }
+
+  fetch('/api/glossary', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ term: term, translation: translation })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success || data.id) {
+      addGlossaryItem(data.id || Date.now(), term, translation);
+      $('#glossaryTerm').value = '';
+      $('#glossaryTranslation').value = '';
+      showToast('\u672F\u8BED\u5DF2\u6DFB\u52A0', 'success');
+      var empty = $('#glossaryList .empty-list');
+      if (empty) empty.remove();
+    } else {
+      showToast(data.error || '\u6DFB\u52A0\u5931\u8D25', 'error');
+    }
+  })
+  .catch(function() {
+    showToast('\u7F51\u7EDC\u9519\u8BEF', 'error');
+  });
+});
+
+function deleteGlossaryItem(btn) {
+  var item = btn.closest('.glossary-item');
+  var id = item.getAttribute('data-id');
+
+  fetch('/api/glossary/' + id, { method: 'DELETE' })
+    .then(function(r) { return r.json(); })
+    .then(function() {
+      item.remove();
+      showToast('\u672F\u8BED\u5DF2\u5220\u9664', 'success');
+      if ($('#glossaryList').children.length === 0) {
+        $('#glossaryList').innerHTML = '<div class="empty-list">\u6682\u65E0\u8BED\u6599\u5E93\u6761\u76EE</div>';
+      }
+    })
+    .catch(function() {
+      showToast('\u5220\u9664\u5931\u8D25', 'error');
+    });
+}
+
+/* ========== Translation Memory ========== */
+function loadTM() {
+  fetch('/api/tm')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var list = $('#tmList');
+      var items = data.tm || data.items || data || [];
+      if (!Array.isArray(items) || items.length === 0) {
+        list.innerHTML = '<div class="empty-list">\u6682\u65E0\u7FFB\u8BD1\u8BB0\u5FC6\u6761\u76EE</div>';
+        return;
+      }
+      list.innerHTML = '';
+      items.forEach(function(item) {
+        addTMItem(item.id || item._id, item.source, item.target);
+      });
+    })
+    .catch(function() {
+      $('#tmList').innerHTML = '<div class="empty-list">\u52A0\u8F7D\u5931\u8D25</div>';
+    });
+}
+
+function addTMItem(id, source, target) {
+  var div = document.createElement('div');
+  div.className = 'tm-item';
+  div.setAttribute('data-id', id);
+  div.innerHTML = '<div style="flex:1;min-width:0;"><div style="font-size:12px;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(source) + '</div><div style="font-size:13px;color:var(--text-primary);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(target) + '</div></div>' +
+    '<div class="tm-actions"><button class="icon-btn danger" title="\u5220\u9664" onclick="deleteTMItem(this)">&#10005;</button></div>';
+  $('#tmList').appendChild(div);
+}
+
+function deleteTMItem(btn) {
+  var item = btn.closest('.tm-item');
+  var id = item.getAttribute('data-id');
+
+  fetch('/api/tm/' + id, { method: 'DELETE' })
+    .then(function(r) { return r.json(); })
+    .then(function() {
+      item.remove();
+      showToast('\u8BB0\u5FC6\u6761\u76EE\u5DF2\u5220\u9664', 'success');
+      if ($('#tmList').children.length === 0) {
+        $('#tmList').innerHTML = '<div class="empty-list">\u6682\u65E0\u7FFB\u8BD1\u8BB0\u5FC6\u6761\u76EE</div>';
+      }
+    })
+    .catch(function() {
+      showToast('\u5220\u9664\u5931\u8D25', 'error');
+    });
+}
+
+/* ========== Init ========== */
+(function init() {
+  // 免登录，所有人可直接使用
+})();
+</script>
+
+</body>
+</html>
