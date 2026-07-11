@@ -1545,51 +1545,66 @@ def api_translate_file():
         # 获取术语
         glossary_terms = GlossaryManager.get_terms_for_translation(source_lang, target_lang, user_id)
 
-        # 逐段翻译
+        # 按页批量翻译（合并段落减少API调用次数）
         translated_pages = []
         global_para_idx = 0
+        SEP = "\n---PARA---\n"
         for page in parsed["pages"]:
+            paragraphs = page["paragraphs"]
             page_translations = []
-            for para in page["paragraphs"]:
-                try:
-                    # TM 匹配
-                    tm_entries = []
-                    if use_tm:
-                        tm_results = TMManager.find_similar(para, source_lang, target_lang, user_id)
-                        tm_entries = [(src, tgt) for src, tgt, sim in tm_results]
-                        for src, tgt, sim in tm_results:
-                            if sim >= 0.95:
-                                page_translations.append(tgt)
-                                HistoryManager.add_record(
-                                    user_id=user_id, source_text=para, translated_text=tgt,
-                                    source_lang=source_lang, target_lang=target_lang,
-                                    api_type="tm", model="", use_tm=1,
+            try:
+                if len(paragraphs) == 1:
+                    # 单段落直接翻译
+                    para = paragraphs[0]
+                    translated = TranslationEngine.translate(
+                        source_text=para, source_lang=source_lang, target_lang=target_lang,
+                        api_type=api_type, api_key=api_key, model=model, api_url=api_url,
+                        glossary_terms=glossary_terms, tm_entries=[],
+                    )
+                    page_translations = [translated]
+                    global_para_idx += 1
+                else:
+                    # 多段落合并翻译
+                    combined = SEP.join(paragraphs)
+                    prompt = (
+                        f"请将以下文本从{source_lang}翻译为{target_lang}。"
+                        f"文本中有 {len(paragraphs)} 个段落，段落之间用 '{SEP}' 分隔。"
+                        f"请保持相同的分隔符格式，只翻译内容不要添加额外说明。\n\n{combined}"
+                    )
+                    translated = TranslationEngine.translate(
+                        source_text=prompt, source_lang=source_lang, target_lang=target_lang,
+                        api_type=api_type, api_key=api_key, model=model, api_url=api_url,
+                        glossary_terms=glossary_terms, tm_entries=[],
+                    )
+                    # 尝试按分隔符分割
+                    parts = translated.split(SEP.strip())
+                    if len(parts) == len(paragraphs):
+                        page_translations = [p.strip() for p in parts]
+                    else:
+                        # 分割失败，逐段翻译作为回退
+                        logger.warning(f"批量翻译分割失败，回退逐段翻译: page={page['page_number']}")
+                        page_translations = []
+                        for para in paragraphs:
+                            try:
+                                t = TranslationEngine.translate(
+                                    source_text=para, source_lang=source_lang, target_lang=target_lang,
+                                    api_type=api_type, api_key=api_key, model=model, api_url=api_url,
+                                    glossary_terms=glossary_terms, tm_entries=[],
                                 )
-                                break
-                        else:
-                            translated = TranslationEngine.translate(
-                                source_text=para, source_lang=source_lang, target_lang=target_lang,
-                                api_type=api_type, api_key=api_key, model=model, api_url=api_url,
-                                glossary_terms=glossary_terms, tm_entries=tm_entries,
-                            )
-                            page_translations.append(translated)
-                            TMManager.add_entry(user_id, para, translated, source_lang, target_lang)
-                            HistoryManager.add_record(
-                                user_id=user_id, source_text=para, translated_text=translated,
-                                source_lang=source_lang, target_lang=target_lang,
-                                api_type=api_type, model=model, use_tm=1 if use_tm else 0,
-                            )
-                            continue
-                        continue
-                except Exception as e:
-                    logger.error(f"翻译段落 {global_para_idx} 失败: {e}")
-                    page_translations.append(f"[翻译失败: {str(e)}]")
-
-                global_para_idx += 1
+                                page_translations.append(t)
+                            except Exception as e2:
+                                logger.error(f"回退翻译失败: {e2}")
+                                page_translations.append(f"[翻译失败: {str(e2)}]")
+                            global_para_idx += 1
+                    global_para_idx += len(paragraphs)
+            except Exception as e:
+                logger.error(f"翻译页面 {page['page_number']} 失败: {e}")
+                page_translations = [f"[翻译失败: {str(e)}]"] * len(paragraphs)
+                global_para_idx += len(paragraphs)
 
             translated_pages.append({
                 "page_number": page["page_number"],
-                "paragraphs": page["paragraphs"],
+                "paragraphs": paragraphs,
                 "translations": page_translations,
             })
 
