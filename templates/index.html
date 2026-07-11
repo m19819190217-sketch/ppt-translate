@@ -1209,10 +1209,10 @@ var state = {
   translatedPages: [],
   selectedLang: 'zh2en',
   selectedOCR: 'auto',
-  selectedPriority: 'deepseek',
-  selectedProvider: 'openai',
-  apiKey: '',
-  model: '',
+  selectedPriority: 'doubao',
+  selectedProvider: 'doubao',
+  apiKey: 'ark-a5c33760-9dae-4d7f-b5ec-0299b50f9538-cbd24',
+  model: 'ep-20260711140502-5nswb',
   apiUrl: '',
   translating: false
 };
@@ -1267,6 +1267,11 @@ setupOptionGroup('langOptions', 'selectedLang');
 setupOptionGroup('ocrOptions', 'selectedOCR');
 setupOptionGroup('translatePriority', 'selectedPriority');
 setupOptionGroup('apiProvider', 'selectedProvider');
+
+/* 填充默认配置 */
+if (state.model) $('#modelInput').value = state.model;
+if (state.apiKey) $('#apiKeyInput').value = state.apiKey;
+if (state.apiUrl) $('#apiUrlInput').value = state.apiUrl;
 
 $('#apiKeyInput').addEventListener('input', function() {
   state.apiKey = this.value.trim();
