@@ -1436,75 +1436,159 @@ function startTranslation() {
   $('#translationResult').classList.add('show');
   $('#progressFill').style.width = '0%';
   $('#progressPercent').textContent = '0%';
-  $('#progressText').textContent = '\u7FFB\u8BD1\u4E2D...';
+  $('#progressText').textContent = '\u4E0A\u4F20\u89E3\u6790\u4E2D...';
 
-  var formData = new FormData();
-  formData.append('file', state.uploadedFile);
-  formData.append('source_lang', sourceLang);
-  formData.append('target_lang', targetLang);
-  formData.append('api_type', apiType);
-  formData.append('api_key', apiKey);
-  formData.append('api_url', apiUrl);
-  formData.append('model', model);
+  /* Step 1: Upload and parse file */
+  var uploadForm = new FormData();
+  uploadForm.append('file', state.uploadedFile);
+  uploadForm.append('source_lang', sourceLang);
+  uploadForm.append('target_lang', targetLang);
 
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', '/api/translate/file');
+  var uploadXhr = new XMLHttpRequest();
+  uploadXhr.open('POST', '/api/upload');
 
-  xhr.addEventListener('load', function() {
-    state.translating = false;
-    btn.classList.remove('loading');
-    updateTranslateBtn();
+  uploadXhr.addEventListener('load', function() {
+    if (uploadXhr.status !== 200) {
+      state.translating = false;
+      btn.classList.remove('loading');
+      updateTranslateBtn();
+      showToast('\u4E0A\u4F20\u89E3\u6790\u5931\u8D25', 'error');
+      $('#globalProgress').classList.remove('show');
+      return;
+    }
 
-    if (xhr.status === 200) {
-      try {
-        var data = JSON.parse(xhr.responseText);
-        state.translatedPages = data.pages || data.results || [];
+    var parsed;
+    try {
+      parsed = JSON.parse(uploadXhr.responseText);
+    } catch(e) {
+      state.translating = false;
+      btn.classList.remove('loading');
+      updateTranslateBtn();
+      showToast('\u89E3\u6790\u7ED3\u679C\u89E3\u6790\u5931\u8D25', 'error');
+      $('#globalProgress').classList.remove('show');
+      return;
+    }
+
+    if (!parsed.ok || !parsed.data || !parsed.data.pages) {
+      state.translating = false;
+      btn.classList.remove('loading');
+      updateTranslateBtn();
+      showToast(parsed.error || '\u89E3\u6790\u5931\u8D25', 'error');
+      $('#globalProgress').classList.remove('show');
+      return;
+    }
+
+    /* Collect all paragraphs */
+    var allParas = [];
+    var pageMap = [];
+    parsed.data.pages.forEach(function(page, pidx) {
+      var paras = page.paragraphs || [];
+      paras.forEach(function(para) {
+        allParas.push({id: para.id, text: para.text, pageIdx: pidx});
+      });
+      pageMap.push({page_number: page.page_number, paragraphs: paras, translations: []});
+    });
+
+    if (allParas.length === 0) {
+      state.translating = false;
+      btn.classList.remove('loading');
+      updateTranslateBtn();
+      showToast('\u6587\u4EF6\u6CA1\u6709\u53EF\u7FFB\u8BD1\u5185\u5BB9', 'warning');
+      $('#globalProgress').classList.remove('show');
+      return;
+    }
+
+    /* Step 2: Translate paragraph by paragraph */
+    var total = allParas.length;
+    var done = 0;
+    var failed = 0;
+
+    function updateProgress() {
+      var pct = Math.round((done + failed) / total * 100);
+      $('#progressFill').style.width = pct + '%';
+      $('#progressPercent').textContent = pct + '%';
+      $('#progressText').textContent = '\u7FFB\u8BD1\u4E2D ' + done + '/' + total + ' \u6BB5' + (failed > 0 ? ' (' + failed + '\u5931\u8D25)' : '');
+    }
+
+    function translateOne(idx) {
+      if (idx >= allParas.length) {
+        /* All done */
+        state.translating = false;
+        btn.classList.remove('loading');
+        updateTranslateBtn();
         $('#progressFill').style.width = '100%';
         $('#progressPercent').textContent = '100%';
         $('#progressText').textContent = '\u7FFB\u8BD1\u5B8C\u6210';
-        displayResults(state.translatedPages);
+        displayResults(pageMap);
         enableExport();
-        showToast('\u7FFB\u8BD1\u5B8C\u6210!', 'success');
+        showToast('\u7FFB\u8BD1\u5B8C\u6210! ' + done + '/' + total + ' \u6BB5', 'success');
         setTimeout(function() {
           $('#globalProgress').classList.remove('show');
         }, 2000);
-      } catch(e) {
-        showToast('\u7FFB\u8BD1\u7ED3\u679C\u89E3\u6790\u5931\u8D25', 'error');
-        $('#globalProgress').classList.remove('show');
+        return;
       }
-    } else {
-      try {
-        var err = JSON.parse(xhr.responseText);
-        showToast('\u7FFB\u8BD1\u5931\u8D25: ' + (err.error || xhr.statusText), 'error');
-      } catch(e) {
-        showToast('\u7FFB\u8BD1\u5931\u8D25: ' + xhr.statusText, 'error');
-      }
-      $('#globalProgress').classList.remove('show');
+
+      var para = allParas[idx];
+      var body = JSON.stringify({
+        source_text: para.text,
+        source_lang: sourceLang,
+        target_lang: targetLang,
+        api_type: apiType,
+        api_key: apiKey,
+        model: model,
+        api_url: apiUrl,
+        use_tm: true,
+      });
+
+      var txXhr = new XMLHttpRequest();
+      txXhr.open('POST', '/api/translate');
+      txXhr.setRequestHeader('Content-Type', 'application/json');
+
+      txXhr.addEventListener('load', function() {
+        if (txXhr.status === 200) {
+          try {
+            var resp = JSON.parse(txXhr.responseText);
+            if (resp.ok && resp.data && resp.data.translation) {
+              pageMap[para.pageIdx].translations.push(resp.data.translation);
+              done++;
+            } else {
+              pageMap[para.pageIdx].translations.push('[\u7FFB\u8BD1\u5931\u8D25]');
+              failed++;
+            }
+          } catch(e) {
+            pageMap[para.pageIdx].translations.push('[\u7FFB\u8BD1\u5931\u8D25]');
+            failed++;
+          }
+        } else {
+          pageMap[para.pageIdx].translations.push('[\u7FFB\u8BD1\u5931\u8D25]');
+          failed++;
+        }
+        updateProgress();
+        translateOne(idx + 1);
+      });
+
+      txXhr.addEventListener('error', function() {
+        pageMap[para.pageIdx].translations.push('[\u7FFB\u8BD1\u5931\u8D25]');
+        failed++;
+        updateProgress();
+        translateOne(idx + 1);
+      });
+
+      txXhr.send(body);
     }
+
+    translateOne(0);
   });
 
-  xhr.addEventListener('error', function() {
+  uploadXhr.addEventListener('error', function() {
     state.translating = false;
     btn.classList.remove('loading');
     updateTranslateBtn();
-    showToast('\u7FFB\u8BD1\u8BF7\u6C42\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC', 'error');
+    showToast('\u4E0A\u4F20\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC', 'error');
     $('#globalProgress').classList.remove('show');
   });
 
-  /* Simulate progress while waiting */
-  var simProgress = 0;
-  var progressTimer = setInterval(function() {
-    if (!state.translating || simProgress >= 90) {
-      clearInterval(progressTimer);
-      return;
-    }
-    simProgress += Math.random() * 8;
-    if (simProgress > 90) simProgress = 90;
-    $('#progressFill').style.width = Math.round(simProgress) + '%';
-    $('#progressPercent').textContent = Math.round(simProgress) + '%';
-  }, 500);
-
-  xhr.send(formData);
+  uploadXhr.send(uploadForm);
 }
 
 function displayResults(pages) {
